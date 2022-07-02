@@ -3,23 +3,27 @@ const admin = require('firebase-admin');
 const jsChessEngine = require('js-chess-engine')
 const Client = require('ssh2-sftp-client');
 var fs = require('fs')
+const os = require('os');
 const path = require('path');
 
 
 // file paths
-const dest = path.resolve(__dirname, './file.dat')
-const src = path.resolve(__dirname, './GNDMOVE.dat');
+// const dest = path.resolve(__dirname, './file.dat')
+// const src = path.resolve(__dirname, './GNDMOVE.dat');
+const tmpdir = os.tmpdir();
+const dest = path.join(tmpdir,'file.dat');
+const src = path.join(tmpdir,'GNDMOVE.dat');
 // const dest = path.join(__dirname, '.', 'file.dat');
 // const src = path.join(__dirname, '.', 'GNDMOVE.dat');
 
 
 // when deploy change to ( admin.initializeApp() )
-const serviceAccount = require("./permit.json");
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://hydrachess-e9dcd-default-rtdb.europe-west1.firebasedatabase.app",
-  storageBucket: "gs://hydrachess-e9dcd.appspot.com"
-});
+// const serviceAccount = require("./permit.json");
+admin.initializeApp();
+
+// credential: admin.credential.cert(serviceAccount),
+//   databaseURL: "https://hydrachess-e9dcd-default-rtdb.europe-west1.firebasedatabase.app",
+//   storageBucket: "gs://hydrachess-e9dcd.appspot.com"
 
 
 const database = admin.firestore();
@@ -35,7 +39,8 @@ const config = {
 sendStatus -> get the most voted move and send the move to the ground station via sftp
 Schedule function (runs every 12 hours)
 */
-exports.sendStatus = functions.pubsub.schedule("0 */12 * * *").onRun(async (context) => {
+
+exports.sendStatus = functions.region('europe-west1').pubsub.schedule("0 */12 * * *").onRun(async (context) => {
   await sendStatusProcedure();
   return 0;
 });
@@ -107,6 +112,7 @@ const sendStatusProcedure = async () => {
   // - create package
   // - save package in src file
   // - uploadd src file to /GNDMOVE.dat
+  console.log('from: ', vote.split('_')[0], ' to', vote.split('_')[1]);
   await uploadFile(vote.split('_')[0], vote.split('_')[1]);  
 
 }
@@ -169,7 +175,7 @@ const uploadFile = async (from, to) => {
 getStatus -> update the database by retrieving the SATBOARD.dat file from the target (sftp host)
 Schedule function (runs every hour at minute 0)
 */
-exports.getStatus = functions.pubsub.schedule("0 * * * *").onRun(async (context) => {
+exports.getStatus = functions.region('europe-west1').pubsub.schedule("0 * * * *").onRun(async (context) => {
   const sftp = new Client();
 
   await sftp.connect(config).then(() => {
@@ -181,18 +187,46 @@ exports.getStatus = functions.pubsub.schedule("0 * * * *").onRun(async (context)
         "status": board,
         "turn": "w",
       });
+    });
 
-      sftp.rename('./SATBOARD.dat', renameFile());
-    })
+    // rename give problems very frecuently
+    sftp.delete('./SATBOARD.dat').then(() => {
+      console.log('deleted');
+    }).catch(err => console.log('Could not delete\n', err));
+
+    let toPut = fs.createReadStream(dest);
+    return sftp.put(toPut, (renameFile()+'.dat'));
+
   }).catch(err => {
     console.log('Error function getStatus: ' + err);
-  }).finally(() => sftp.end());
+  }).finally(() => {
+    fs.unlink(dest, (err) => {
+      
+      if(err) {
+        console.log('Error unlink', err);
+      }else { 
+        console.log('dest deleted!');
+      }
+
+    });
+
+    sftp.end();
+  });
 
   return 0;
 });
 
 
 // auxiliary functions
+    
+
+    // sftp.rename('./SATBOARD.dat', (renameFile()+'.dat') )
+    // .then(() => {
+    //     console.log('Renamed');
+    // }).catch(err => {
+    //     console.log('Could not rename\n');
+    // });
+
 
 /* 
   resetVotes -> reset all user votes and delete the doc "votes/dailyVote"
@@ -228,7 +262,7 @@ const renameFile = () => {
   const tzoffset = (new Date()).getTimezoneOffset() * 60000;
   const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().split(/[^0-9]/).slice(0, -1);
 
-  a = [localISOTime.slice(0, 3).join(''), localISOTime.slice(3, 6).join('')]
+  let a = [localISOTime.slice(0, 3).join(''), localISOTime.slice(3, 6).join('')]
 
   return './SATBOARD_' + a.join('_');
 }
@@ -241,6 +275,8 @@ const renameFile = () => {
 const createPackage = (from, to) => {
   a = from[0].toUpperCase().charCodeAt(0) - 64
   b = to[0].toUpperCase().charCodeAt(0) - 64
+
+  console.log('f: ' +  a + ' to' + b);
 
   cad = String.fromCodePoint(0x00) +
   String.fromCodePoint(0x00) + 
