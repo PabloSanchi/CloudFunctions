@@ -6,40 +6,25 @@ var fs = require('fs')
 const os = require('os');
 const path = require('path');
 
-
 // file paths
 // const dest = path.resolve(__dirname, './file.dat')
 // const src = path.resolve(__dirname, './GNDMOVE.dat');
 const tmpdir = os.tmpdir();
 const dest = path.join(tmpdir,'file.dat');
 const src = path.join(tmpdir,'GNDMOVE.dat');
-// const dest = path.join(__dirname, '.', 'file.dat');
-// const src = path.join(__dirname, '.', 'GNDMOVE.dat');
 
-
-// when deploy change to ( admin.initializeApp() )
-// const serviceAccount = require("./permit.json");
 admin.initializeApp();
-
-// credential: admin.credential.cert(serviceAccount),
-//   databaseURL: "https://hydrachess-e9dcd-default-rtdb.europe-west1.firebasedatabase.app",
-//   storageBucket: "gs://hydrachess-e9dcd.appspot.com"
-
 
 const database = admin.firestore();
 
 // config for sftp connection
-const config = {
-  host: "access875030600.webspace-data.io",
-  username: "u183377867",
-  password: "chessftp2022",
-}
+const config = {...}
+
 
 /*
 sendStatus -> get the most voted move and send the move to the ground station via sftp
 Schedule function (runs every 12 hours)
 */
-
 exports.sendStatus = functions.region('europe-west1').pubsub.schedule("0 */12 * * *").onRun(async (context) => {
   await sendStatusProcedure();
   return 0;
@@ -117,7 +102,7 @@ const sendStatusProcedure = async () => {
 
 }
 
-/* 
+/*
   getVote -> get the voted movement made by the users, 
   @param {Object} data, contains the votes {movement : frec }
     - movement: A2_A3 (example)
@@ -165,6 +150,17 @@ const uploadFile = async (from, to) => {
     return sftp.put(toPut, '/GNDMOVE.dat');
   }).then(data => {
       console.log('GNDMOVE.dat sended!');
+      
+      fs.unlink(src, (err) => {
+      
+        if(err) {
+          console.log('Error unlink', err);
+        }else { 
+          console.log('src deleted!');
+        }
+  
+      });
+
   }).catch(err => {
       console.log('Could not upload\n', err);
   }).finally(() => sftp.end());
