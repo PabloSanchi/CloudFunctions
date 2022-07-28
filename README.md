@@ -16,10 +16,10 @@ just like the following one:
 
 ```javascript
 const config = {
-  host: ENDPOINT
-  username: USERNAME,
-  password: PASSWORD,
+  host: process.env.ENDPOINT
+  username: process.env.USERNAME,
+  password: process.env.PASSWORD,
 }
 ```
 
-We recommend the use of environment variables.
+We recommend the use of [environment variables](https://medium.com/the-node-js-collection/making-your-node-js-work-everywhere-with-environment-variables-2da8cdf6e786). 
