@@ -22,4 +22,4 @@ const config = {
 }
 ```
 
-We recommend the use of [environment variables](https://medium.com/the-node-js-collection/making-your-node-js-work-everywhere-with-environment-variables-2da8cdf6e786). 
+We recommend the use of <a href="https://medium.com/the-node-js-collection/making-your-node-js-work-everywhere-with-environment-variables-2da8cdf6e786" target="_blank">environment variables</a>
