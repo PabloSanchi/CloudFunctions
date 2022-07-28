@@ -16,9 +16,9 @@ just like the following one:
 
 ```javascript
 const config = {
-  host: process.env.ENDPOINT
+  host: process.env.ENDPOINT,
   username: process.env.USERNAME,
-  password: process.env.PASSWORD,
+  password: process.env.PASSWORD
 }
 ```
 
