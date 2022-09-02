@@ -1,4 +1,8 @@
-# ☁️ Cloud functions SPACE CHESS
+# IMPORTANT NOTE
+This is only a brief description of the LG Space Chess Cloud Functions.<br>
+[Full Documentation here!](./Documentation.pdf)
+
+# ☁️ Cloud functions LG SPACE CHESS
 cloud functions help us to transfer data between the database and the satellite. 
 
 If it is the Earth(🌎) turn, at minute 0 every day the cloud functions send the most voted movement to the ground station(📡) via SFTP, In case there are no votes an AI will play instead.
